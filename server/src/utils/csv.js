@@ -2,6 +2,7 @@ const FIXED_HEADERS = [
   ['Task ID', '_id'],
   ['Client Name', 'clientName'],
   ['Editor Name', 'editorName'],
+  ['Editors', 'editorNames'],
   ['Project Name', 'projectName'],
   ['Google Doc Link', 'googleDocLink'],
   ['Deadline (days)', 'deadlineDays'],
@@ -47,7 +48,18 @@ export function tasksToCsv(tasks) {
     const customValues = new Map(
       (task.customFields || []).map((field) => [field.name.trim().toLowerCase(), field.value])
     );
-    const fixedCells = FIXED_HEADERS.map(([, key]) => csvCell(key === '_id' ? String(task[key]) : task[key]));
+    const fixedCells = FIXED_HEADERS.map(([, key]) => {
+      if (key === '_id') return csvCell(String(task[key]));
+      if (key === 'editorNames') {
+        const names = Array.isArray(task.editorNames) && task.editorNames.length
+          ? task.editorNames
+          : task.editorName
+            ? [task.editorName]
+            : [];
+        return csvCell(names.join(' | '));
+      }
+      return csvCell(task[key]);
+    });
     const customCells = sortedCustom.map(([key]) => csvCell(customValues.get(key)));
     rows.push([...fixedCells, ...customCells].join(','));
   }

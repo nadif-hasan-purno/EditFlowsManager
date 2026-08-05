@@ -57,6 +57,8 @@ router.put('/:id', async (req, res) => {
     status: payload.status ?? 'Todo',
     priority: payload.priority ?? 'medium',
     pinned: payload.pinned ?? false,
+    editorNames: payload.editorNames ?? (payload.editorName ? [payload.editorName] : []),
+    editorName: payload.editorName ?? payload.editorNames?.[0] ?? '',
     customFields: payload.customFields ?? [],
   });
   await task.save();

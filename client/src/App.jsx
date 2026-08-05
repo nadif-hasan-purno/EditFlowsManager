@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { PanelRightClose, PanelRightOpen, Plus, Settings2 } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Plus, Settings2, Users } from 'lucide-react';
 import { api } from './api.js';
 import Filters from './components/Filters.jsx';
 import DashboardStrip from './components/DashboardStrip.jsx';
@@ -10,6 +10,7 @@ import AgendaView from './components/AgendaView.jsx';
 import ListView from './components/ListView.jsx';
 import TaskForm from './components/TaskForm.jsx';
 import DefinitionManager from './components/DefinitionManager.jsx';
+import EditorManager from './components/EditorManager.jsx';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,16 +43,17 @@ function readStored(key, fallback) {
 export default function App() {
   const [tasks, setTasks] = useState([]);
   const [definitions, setDefinitions] = useState([]);
+  const [editorRoster, setEditorRoster] = useState([]);
   const [filters, setFilters] = useState(emptyFilters);
   const [hideDone, setHideDone] = useState(() => readStored('ct-hide-done', '0') === '1');
   const [knownClients, setKnownClients] = useState(new Set());
-  const [knownEditors, setKnownEditors] = useState(new Set());
   const [view, setView] = useState(() => readStored('ct-view', 'board'));
   const [compactCards, setCompactCards] = useState(() => readStored('ct-compact', '1') !== '0');
   const [showSidePanel, setShowSidePanel] = useState(() => readStored('ct-side', '1') !== '0');
   const [editingTask, setEditingTask] = useState(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showDefinitions, setShowDefinitions] = useState(false);
+  const [showEditors, setShowEditors] = useState(false);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -71,7 +73,6 @@ export default function App() {
 
   const rememberNames = useCallback((items) => {
     setKnownClients((current) => new Set([...current, ...items.map((task) => task.clientName).filter(Boolean)]));
-    setKnownEditors((current) => new Set([...current, ...items.map((task) => task.editorName).filter(Boolean)]));
   }, []);
 
   const serverFilters = useMemo(
@@ -106,10 +107,19 @@ export default function App() {
     }
   }, []);
 
+  const loadEditors = useCallback(async () => {
+    try {
+      setEditorRoster(await api.listEditors(true));
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }, []);
+
   useEffect(() => {
     api.listTasks({}).then(rememberNames).catch(() => {});
     loadDefinitions();
-  }, [loadDefinitions, rememberNames]);
+    loadEditors();
+  }, [loadDefinitions, loadEditors, rememberNames]);
 
   useEffect(() => {
     loadTasks(serverFilters);
@@ -120,7 +130,24 @@ export default function App() {
   }, [filters, hideDone, view]);
 
   const clients = useMemo(() => [...knownClients].sort((a, b) => a.localeCompare(b)), [knownClients]);
-  const editors = useMemo(() => [...knownEditors].sort((a, b) => a.localeCompare(b)), [knownEditors]);
+  const activeEditors = useMemo(
+    () => editorRoster.filter((editor) => editor.active !== false),
+    [editorRoster],
+  );
+  const filterEditors = useMemo(() => {
+    const names = new Set(editorRoster.map((editor) => editor.name));
+    for (const task of tasks) {
+      if (Array.isArray(task.editorNames)) {
+        for (const name of task.editorNames) if (name) names.add(name);
+      } else if (task.editorName) {
+        names.add(task.editorName);
+      }
+    }
+    return [...names].sort((a, b) => a.localeCompare(b)).map((name) => {
+      const found = editorRoster.find((editor) => editor.name === name);
+      return found || { name, color: '#6b7280' };
+    });
+  }, [editorRoster, tasks]);
 
   const visibleTasks = useMemo(() => {
     const filtered = applyLocalFilters(tasks, {
@@ -299,6 +326,35 @@ export default function App() {
     }
   }
 
+  async function createEditor(payload) {
+    const editor = await api.createEditor(payload);
+    setEditorRoster((current) =>
+      [...current, editor].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name)),
+    );
+    return editor;
+  }
+
+  async function updateEditor(id, payload) {
+    const updated = await api.updateEditor(id, payload);
+    setEditorRoster((current) =>
+      current
+        .map((item) => (item._id === id ? updated : item))
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name)),
+    );
+  }
+
+  async function deleteEditor(editor) {
+    if (!window.confirm(`Deactivate editor “${editor.name}”? Existing tasks keep the name.`)) return;
+    try {
+      const updated = await api.deleteEditor(editor._id);
+      setEditorRoster((current) =>
+        current.map((item) => (item._id === editor._id ? updated : item)),
+      );
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -319,6 +375,10 @@ export default function App() {
           >
             {showSidePanel ? <PanelRightClose /> : <PanelRightOpen />}
             <span className="hidden sm:inline">{showSidePanel ? 'Hide insights' : 'Insights'}</span>
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => setShowEditors(true)}>
+            <Users />
+            <span className="hidden sm:inline">Editors</span>
           </Button>
           <Button type="button" variant="secondary" size="sm" onClick={() => setShowDefinitions(true)}>
             <Settings2 />
@@ -358,12 +418,36 @@ export default function App() {
           filters={filters}
           onChange={setFilters}
           clients={clients}
-          editors={editors}
+          editors={filterEditors}
           onExport={exportCsv}
           exporting={exporting}
           hideDone={hideDone}
           onHideDoneChange={setHideDone}
         />
+
+        {filters.smart === 'multi-editors' && (
+          <section className="segment-banner multi-editor-segment" aria-label="Multi-editor projects">
+            <div>
+              <p className="eyebrow">Collab segment</p>
+              <h3>Multi-editor projects</h3>
+              <p>
+                Showing only tasks assigned to <strong>2+ editors</strong>.
+                Use the editor filter above to narrow to a person who is part of a collab.
+              </p>
+            </div>
+            <div className="segment-banner-stats">
+              <strong>{visibleTasks.length}</strong>
+              <span>collab task{visibleTasks.length === 1 ? '' : 's'}</span>
+              <button
+                type="button"
+                className="button ghost compact"
+                onClick={() => setFilters((current) => ({ ...current, smart: '' }))}
+              >
+                Exit segment
+              </button>
+            </div>
+          </section>
+        )}
 
         {error && <div className="alert error">{error}<button type="button" onClick={() => setError('')}>×</button></div>}
 
@@ -371,6 +455,7 @@ export default function App() {
           <p>
             <strong>{visibleTasks.length}</strong> task{visibleTasks.length === 1 ? '' : 's'}
             {visibleTasks.length !== tasks.length ? ` of ${tasks.length}` : ''} in this view
+            {filters.smart === 'multi-editors' ? ' · multi-editor segment' : ''}
           </p>
           <div className="results-tools">
             {view === 'board' && (
@@ -415,6 +500,7 @@ export default function App() {
                 onDelete={deleteTask}
                 onTogglePin={togglePin}
                 onStatusChange={changeTaskStatus}
+                editors={editorRoster}
                 compactCards={compactCards}
               />
             ) : view === 'agenda' ? (
@@ -423,6 +509,7 @@ export default function App() {
                 onEdit={openEdit}
                 onDelete={deleteTask}
                 onStatusChange={changeTaskStatus}
+                editors={editorRoster}
               />
             ) : (
               <ListView
@@ -430,6 +517,7 @@ export default function App() {
                 onEdit={openEdit}
                 onDelete={deleteTask}
                 onTogglePin={togglePin}
+                editors={editorRoster}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}
                 onToggleSelectAll={toggleSelectAll}
@@ -455,9 +543,11 @@ export default function App() {
           key={editingTask?._id || 'new'}
           task={editingTask}
           definitions={definitions}
+          editors={activeEditors}
           onSave={saveTask}
           onCancel={() => { setShowTaskForm(false); setEditingTask(null); }}
           onCreateDefinition={createDefinition}
+          onCreateEditor={createEditor}
         />
       )}
       {showDefinitions && (
@@ -467,6 +557,15 @@ export default function App() {
           onUpdate={updateDefinition}
           onDelete={deleteDefinition}
           onClose={() => setShowDefinitions(false)}
+        />
+      )}
+      {showEditors && (
+        <EditorManager
+          editors={editorRoster}
+          onCreate={createEditor}
+          onUpdate={updateEditor}
+          onDelete={deleteEditor}
+          onClose={() => setShowEditors(false)}
         />
       )}
     </div>

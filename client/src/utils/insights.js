@@ -1,4 +1,5 @@
 import { isDoneStatus, priorityRank } from './taskMeta.js';
+import { formatEditorsLabel, getTaskEditors, isMultiEditorTask } from './editors.js';
 
 export function matchesSearch(task, query) {
   const q = String(query || '').trim().toLowerCase();
@@ -8,6 +9,7 @@ export function matchesSearch(task, query) {
     task.projectName,
     task.clientName,
     task.editorName,
+    formatEditorsLabel(task, ' '),
     task.description,
     task.notes,
     task.status,
@@ -41,6 +43,8 @@ export function matchesSmartFilter(task, smart) {
       return Boolean(task.pinned);
     case 'missing-links':
       return open && !task.googleDocLink && !task.frameIoLink;
+    case 'multi-editors':
+      return isMultiEditorTask(task);
     case 'open':
       return open;
     default:
@@ -69,6 +73,7 @@ export function buildInsights(tasks) {
   const high = open.filter((task) => (task.priority || 'medium') === 'high');
   const pinned = tasks.filter((task) => task.pinned);
   const missingLinks = open.filter((task) => !task.googleDocLink && !task.frameIoLink);
+  const multiEditors = tasks.filter((task) => isMultiEditorTask(task));
   const totalDuration = open.reduce((sum, task) => sum + (Number(task.duration) || 0), 0);
   const completionRate = tasks.length
     ? Math.round((approved.length / tasks.length) * 100)
@@ -83,6 +88,7 @@ export function buildInsights(tasks) {
     revision: revision.length,
     pinned: pinned.length,
     missingLinks: missingLinks.length,
+    multiEditors: multiEditors.length,
     approved: approved.length,
     completionRate,
     totalDuration,
@@ -94,15 +100,19 @@ export function buildEditorWorkload(tasks) {
 
   for (const task of tasks) {
     if (isDoneStatus(task.status)) continue;
-    const name = task.editorName || 'Unassigned';
-    if (!map.has(name)) {
-      map.set(name, { editor: name, open: 0, high: 0, overdue: 0, duration: 0 });
+    const names = getTaskEditors(task);
+    const assigned = names.length ? names : ['Unassigned'];
+    for (const name of assigned) {
+      if (!map.has(name)) {
+        map.set(name, { editor: name, open: 0, high: 0, overdue: 0, duration: 0, collab: 0 });
+      }
+      const row = map.get(name);
+      row.open += 1;
+      row.duration += Number(task.duration) || 0;
+      if ((task.priority || 'medium') === 'high') row.high += 1;
+      if (Number(task.deadlineDays) <= 0) row.overdue += 1;
+      if (assigned.length > 1) row.collab += 1;
     }
-    const row = map.get(name);
-    row.open += 1;
-    row.duration += Number(task.duration) || 0;
-    if ((task.priority || 'medium') === 'high') row.high += 1;
-    if (Number(task.deadlineDays) <= 0) row.overdue += 1;
   }
 
   return [...map.values()].sort((a, b) => b.open - a.open || a.editor.localeCompare(b.editor));

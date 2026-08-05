@@ -21,7 +21,14 @@ export function buildTaskFilter(query = {}) {
   }
 
   if (query.editor) {
-    filter.editorName = new RegExp(`^${escapeRegex(String(query.editor).trim())}$`, 'i');
+    const editor = String(query.editor).trim();
+    const exact = new RegExp(`^${escapeRegex(editor)}$`, 'i');
+    // Match primary name or any collaborator on multi-editor tasks
+    filter.$or = [{ editorName: exact }, { editorNames: exact }];
+  }
+
+  if (query.multiEditors === 'true' || query.multiEditors === true || query.multiEditors === '1') {
+    filter['editorNames.1'] = { $exists: true };
   }
 
   if (query.priority) {

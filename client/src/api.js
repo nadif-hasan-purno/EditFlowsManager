@@ -107,6 +107,26 @@ export const api = {
       method: "DELETE",
     }),
 
+  listEditors: (all = false) =>
+    request(`/editors${all ? "?all=true" : ""}`),
+
+  createEditor: (editor) =>
+    request("/editors", {
+      method: "POST",
+      body: JSON.stringify(editor),
+    }),
+
+  updateEditor: (id, editor) =>
+    request(`/editors/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(editor),
+    }),
+
+  deleteEditor: (id) =>
+    request(`/editors/${id}`, {
+      method: "DELETE",
+    }),
+
   async downloadCsv(filters) {
     const response = await fetch(
       `${API_URL}/tasks/export.csv${taskQuery(filters)}`,

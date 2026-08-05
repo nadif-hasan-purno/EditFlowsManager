@@ -27,6 +27,7 @@ export default function WorkloadPanel({ editors, clients, recent, onFilterEditor
                   <div className="workload-meta muted tiny">
                     {row.high ? <span className="hot-text">{row.high} high</span> : <span>0 high</span>}
                     {row.overdue ? <span className="danger-text"> · {row.overdue} due now</span> : null}
+                    {row.collab ? <span> · {row.collab} collab</span> : null}
                     <span> · {row.duration} dur</span>
                   </div>
                 </button>
@@ -75,7 +76,12 @@ export default function WorkloadPanel({ editors, clients, recent, onFilterEditor
                 <button type="button" className="activity-item" onClick={() => onOpenTask(task)}>
                   <strong>{task.projectName}</strong>
                   <span className="muted tiny">
-                    {task.status} · {task.editorName}
+                    {task.status} · {(Array.isArray(task.editorNames) && task.editorNames.length
+                      ? task.editorNames
+                      : task.editorName
+                        ? [task.editorName]
+                        : []
+                    ).join(', ') || '—'}
                     {task.updatedAt
                       ? ` · ${new Date(task.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
                       : ''}

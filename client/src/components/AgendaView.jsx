@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { STATUSES } from '../constants.js';
 import { formatShortDate, getDueDate, groupTasksForAgenda } from '../utils/taskMeta.js';
+import { EditorBadges } from './EditorBadge.jsx';
+import { getTaskEditors } from '../utils/editors.js';
 
 function statusSlug(status) {
   return status.toLowerCase().replaceAll(' ', '-');
 }
 
-export default function AgendaView({ tasks, onEdit, onDelete, onStatusChange }) {
+export default function AgendaView({ tasks, onEdit, onDelete, onStatusChange, editors = [] }) {
   const sections = useMemo(() => groupTasksForAgenda(tasks), [tasks]);
   const [collapsed, setCollapsed] = useState(() => new Set());
 
@@ -53,9 +55,15 @@ export default function AgendaView({ tasks, onEdit, onDelete, onStatusChange }) 
                           <button type="button" className="agenda-title" onClick={() => onEdit(task)}>
                             {task.projectName}
                           </button>
-                          <p className="muted tiny">
-                            {task.clientName} · {task.editorName}
-                            {task.description ? ` — ${task.description.slice(0, 60)}${task.description.length > 60 ? '…' : ''}` : ''}
+                          <p className="muted tiny agenda-meta">
+                            <span>{task.clientName}</span>
+                            <EditorBadges names={getTaskEditors(task)} editors={editors} size="sm" />
+                            {task.description ? (
+                              <span>
+                                — {task.description.slice(0, 60)}
+                                {task.description.length > 60 ? '…' : ''}
+                              </span>
+                            ) : null}
                           </p>
                         </div>
                       </div>

@@ -12,6 +12,7 @@ export default function BoardView({
   onDelete,
   onTogglePin,
   onStatusChange,
+  editors = [],
   compactCards = true,
 }) {
   const [draggingId, setDraggingId] = useState(null);
@@ -94,6 +95,7 @@ export default function BoardView({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onTogglePin={onTogglePin}
+                  editors={editors}
                   draggable
                   isDragging={draggingId === task._id}
                   onDragStart={handleDragStart}

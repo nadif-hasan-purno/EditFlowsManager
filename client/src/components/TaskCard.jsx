@@ -1,5 +1,7 @@
 import React from 'react';
 import { formatShortDate, getDueDate } from '../utils/taskMeta.js';
+import { EditorBadges } from './EditorBadge.jsx';
+import { getTaskEditors } from '../utils/editors.js';
 
 function CustomFieldValue({ field }) {
   if (field.type === 'url' && field.value) {
@@ -17,6 +19,7 @@ export default function TaskCard({
   onEdit,
   onDelete,
   onTogglePin,
+  editors = [],
   draggable = false,
   isDragging = false,
   onDragStart,
@@ -29,6 +32,7 @@ export default function TaskCard({
   const priority = task.priority || 'medium';
   const dueLabel = formatShortDate(getDueDate(task));
   const isCompact = compact && !expanded;
+  const taskEditors = getTaskEditors(task);
 
   function handleDragStart(event) {
     if (event.target.closest('button, a, .card-actions, .card-expand-btn')) {
@@ -90,7 +94,8 @@ export default function TaskCard({
 
       <h3>{task.projectName}</h3>
       <p className="muted card-meta-line">
-        {task.clientName} · {task.editorName}
+        <span>{task.clientName}</span>
+        <EditorBadges names={taskEditors} editors={editors} size="sm" />
         <span className="due-chip">{task.deadlineDays}d · {dueLabel}</span>
       </p>
 

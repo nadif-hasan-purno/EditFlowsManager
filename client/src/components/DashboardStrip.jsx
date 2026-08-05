@@ -6,8 +6,8 @@ const CARDS = [
   { key: 'dueWeek', label: 'This week', smart: 'due-week', tone: 'warn' },
   { key: 'high', label: 'High priority', smart: 'high', tone: 'hot' },
   { key: 'revision', label: 'In revision', smart: 'revision', tone: 'purple' },
+  { key: 'multiEditors', label: 'Multi-editor', smart: 'multi-editors', tone: 'team' },
   { key: 'pinned', label: 'Pinned', smart: 'pinned', tone: 'pin' },
-  { key: 'missingLinks', label: 'No links', smart: 'missing-links', tone: 'muted' },
   { key: 'completionRate', label: 'Approved %', smart: '', tone: 'success', suffix: '%' },
 ];
 

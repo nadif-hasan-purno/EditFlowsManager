@@ -57,6 +57,8 @@ VITE_API_URL=https://editflows-manager.onrender.com/api
 - `GET /api/tasks/export.csv?status=Todo&client=Acme&editor=Sam`
 - `GET|POST /api/custom-field-definitions`
 - `GET|PATCH|PUT|DELETE /api/custom-field-definitions/:id`
+- `GET|POST /api/editors` (auto-seeds default team roster when empty)
+- `GET|PATCH|PUT|DELETE /api/editors/:id`
 
 Task-list and CSV routes accept optional `status`, `client`, and `editor` query parameters.
 

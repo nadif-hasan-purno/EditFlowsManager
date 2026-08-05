@@ -43,7 +43,20 @@ const optionalUrlValidator = {
 const taskSchema = new mongoose.Schema(
   {
     clientName: { type: String, required: true, trim: true },
+    /** Primary / display editor (first of editorNames). Kept for older records & CSV. */
     editorName: { type: String, required: true, trim: true },
+    /** All assigned editors for collab projects. */
+    editorNames: {
+      type: [{ type: String, trim: true }],
+      default: undefined,
+      validate: {
+        validator(value) {
+          if (value === undefined || value === null) return true;
+          return Array.isArray(value) && value.every((name) => String(name || '').trim());
+        },
+        message: 'editorNames must be an array of non-empty names.',
+      },
+    },
     projectName: { type: String, required: true, trim: true },
     googleDocLink: {
       type: String,
@@ -70,5 +83,6 @@ const taskSchema = new mongoose.Schema(
 );
 
 taskSchema.index({ status: 1, clientName: 1, editorName: 1 });
+taskSchema.index({ editorNames: 1 });
 
 export default mongoose.model('Task', taskSchema);

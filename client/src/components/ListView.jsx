@@ -1,10 +1,13 @@
 import React from 'react';
+import { EditorBadges } from './EditorBadge.jsx';
+import { getTaskEditors } from '../utils/editors.js';
 
 export default function ListView({
   tasks,
   onEdit,
   onDelete,
   onTogglePin,
+  editors = [],
   selectedIds,
   onToggleSelect,
   onToggleSelectAll,
@@ -55,7 +58,9 @@ export default function ListView({
                 {task.notes && <span className="table-notes">Note: {task.notes}</span>}
               </td>
               <td>{task.clientName}</td>
-              <td>{task.editorName}</td>
+              <td>
+                <EditorBadges names={getTaskEditors(task)} editors={editors} size="sm" />
+              </td>
               <td><span className={`status-badge status-${task.status.toLowerCase().replaceAll(' ', '-')}`}>{task.status}</span></td>
               <td>
                 <span className={`priority-chip priority-chip-${task.priority || 'medium'}`}>

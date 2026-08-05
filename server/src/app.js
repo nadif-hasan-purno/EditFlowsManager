@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import taskRoutes from "./routes/tasks.js";
 import customFieldDefinitionRoutes from "./routes/customFieldDefinitions.js";
+import editorRoutes from "./routes/editors.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -56,6 +57,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/tasks", taskRoutes);
 app.use("/api/custom-field-definitions", customFieldDefinitionRoutes);
+app.use("/api/editors", editorRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

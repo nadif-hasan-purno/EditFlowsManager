@@ -200,6 +200,10 @@ textarea { resize: vertical; }
   gap: 10px;
   margin-bottom: 16px;
 }
+@media (max-width: 900px) {
+  .segment-banner { flex-direction: column; align-items: flex-start; }
+  .segment-banner-stats { justify-items: start; text-align: left; }
+}
 .dash-card {
   display: grid;
   gap: 4px;
@@ -240,7 +244,158 @@ textarea { resize: vertical; }
 .dark .dash-card.tone-hot .dash-value { color: #fb923c; }
 .dash-card.tone-purple .dash-value { color: var(--app-purple-fg); }
 .dash-card.tone-pin .dash-value { color: #d97706; }
+.dash-card.tone-team .dash-value { color: #2563eb; }
+.dark .dash-card.tone-team .dash-value { color: #93c5fd; }
 .dash-card.tone-success .dash-value { color: var(--app-success-fg); }
+
+.segment-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, #2563eb 35%, var(--app-border));
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, #2563eb 12%, var(--app-card)),
+      color-mix(in oklab, #7c3aed 8%, var(--app-card)));
+}
+.segment-banner h3 { margin: 0 0 4px; font-size: 1rem; }
+.segment-banner p { margin: 0; color: var(--app-muted-fg); font-size: .86rem; max-width: 52ch; line-height: 1.5; }
+.segment-banner-stats {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+.segment-banner-stats strong {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #2563eb;
+}
+.dark .segment-banner-stats strong { color: #93c5fd; }
+.segment-banner-stats span {
+  color: var(--app-muted-fg);
+  font-size: .75rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.editor-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.multi-editor-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, #2563eb 16%, var(--app-muted));
+  color: #2563eb;
+  font-size: .65rem;
+  font-weight: 800;
+}
+.dark .multi-editor-flag { color: #93c5fd; }
+
+.editor-multi-field {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  background: var(--app-muted);
+}
+.editor-multi-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.editor-multi-head > span { font-size: .78rem; font-weight: 750; color: var(--app-muted-fg); }
+.editor-multi-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.editor-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--app-muted-fg);
+}
+.editor-chip-remove:hover { color: var(--app-danger); }
+.editor-multi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.editor-multi-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--app-border);
+  background: var(--app-card);
+  cursor: pointer;
+  font-size: .84rem;
+  font-weight: 650;
+  color: var(--app-fg);
+}
+.editor-multi-option input { width: auto; margin: 0; }
+.editor-multi-option.is-selected { font-weight: 750; }
+
+.editor-add-toggle {
+  justify-self: start;
+  margin-top: 2px;
+}
+.editor-quick-add {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 11px;
+  border: 1px dashed color-mix(in oklab, #2563eb 40%, var(--app-border));
+  background: color-mix(in oklab, #2563eb 6%, var(--app-card));
+}
+.editor-quick-add-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.editor-quick-add-head strong { font-size: .9rem; }
+.editor-quick-add-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 10px;
+}
+.quick-color-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quick-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  padding: 0;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--app-border) 80%, transparent);
+}
+.quick-color-swatch.is-active {
+  border-color: var(--app-fg);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--app-fg) 20%, transparent);
+}
+@media (max-width: 760px) {
+  .editor-quick-add-grid { grid-template-columns: 1fr; }
+}
 
 .management-toolbar { align-items: stretch; }
 .filters-stack { display: grid; gap: 12px; flex: 1; min-width: 0; }
@@ -434,6 +589,89 @@ textarea { resize: vertical; }
 }
 .pin-check { margin-top: 4px; }
 .col-check { width: 36px; }
+
+/* Editor roster + badges */
+.editor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  font-weight: 750;
+  line-height: 1.2;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid transparent;
+  vertical-align: middle;
+}
+.editor-badge-sm {
+  padding: 3px 8px;
+  font-size: 0.7rem;
+}
+.editor-badge-md {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+}
+.editor-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+.editor-select-wrap {
+  position: relative;
+  display: grid;
+}
+.editor-select-wrap .editor-select-swatch {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--app-card) 70%, transparent);
+}
+.editor-select-wrap select.has-swatch {
+  padding-left: 30px;
+}
+.editor-color-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.editor-color-row input[type="color"] {
+  width: 100%;
+  height: 40px;
+  padding: 4px;
+  cursor: pointer;
+}
+.editor-roster-item .editor-roster-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.editor-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--app-border) 80%, transparent);
+}
+.agenda-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.card-meta-line .editor-badge {
+  flex-shrink: 0;
+}
 .table-project { display: flex; align-items: center; gap: 6px; }
 .pin-mark { color: #d97706; }
 .table-notes {

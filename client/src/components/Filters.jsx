@@ -7,6 +7,7 @@ const SMART_CHIPS = [
   { id: 'due-week', label: 'This week' },
   { id: 'high', label: 'High priority' },
   { id: 'revision', label: 'In revision' },
+  { id: 'multi-editors', label: 'Multi-editor' },
   { id: 'pinned', label: 'Pinned' },
   { id: 'missing-links', label: 'Missing links' },
 ];
@@ -15,12 +16,15 @@ export default function Filters({
   filters,
   onChange,
   clients,
-  editors,
+  editors = [],
   onExport,
   exporting,
   hideDone,
   onHideDoneChange,
 }) {
+  const editorNames = editors.map((editor) =>
+    typeof editor === 'string' ? editor : editor.name,
+  );
   const update = (key) => (event) => onChange({ ...filters, [key]: event.target.value });
 
   const hasFilters = Boolean(
@@ -80,7 +84,9 @@ export default function Filters({
             <span>Editor</span>
             <select value={filters.editor} onChange={update('editor')}>
               <option value="">All editors</option>
-              {editors.map((editor) => <option key={editor}>{editor}</option>)}
+              {editorNames.map((editor) => (
+                <option key={editor} value={editor}>{editor}</option>
+              ))}
             </select>
           </label>
         </div>
