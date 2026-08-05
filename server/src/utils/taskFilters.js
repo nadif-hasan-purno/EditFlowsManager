@@ -1,4 +1,4 @@
-import { TASK_STATUSES } from '../models/Task.js';
+import { TASK_PRIORITIES, TASK_STATUSES } from '../models/Task.js';
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -22,6 +22,20 @@ export function buildTaskFilter(query = {}) {
 
   if (query.editor) {
     filter.editorName = new RegExp(`^${escapeRegex(String(query.editor).trim())}$`, 'i');
+  }
+
+  if (query.priority) {
+    const priority = String(query.priority).trim().toLowerCase();
+    if (!TASK_PRIORITIES.includes(priority)) {
+      const error = new Error(`Invalid priority. Use one of: ${TASK_PRIORITIES.join(', ')}`);
+      error.status = 400;
+      throw error;
+    }
+    filter.priority = priority;
+  }
+
+  if (query.pinned === 'true' || query.pinned === true) {
+    filter.pinned = true;
   }
 
   return filter;

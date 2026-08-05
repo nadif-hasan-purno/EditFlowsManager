@@ -23,6 +23,16 @@ Set the API base URL in `.env` when the server is not running at `http://localho
 VITE_API_URL=http://localhost:5000/api
 ```
 
+## Theme (day / night)
+
+The UI uses a shadcn-style token system with Tailwind:
+
+- **Day** — light
+- **Night** — dark
+- **Auto** — follow system preference
+
+Preference is stored in `localStorage` under `ct-theme`.
+
 ## Production build / Render
 
 ```bash

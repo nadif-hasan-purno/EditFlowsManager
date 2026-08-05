@@ -10,6 +10,8 @@ const FIXED_FIELDS = [
   'duration',
   'status',
   'priority',
+  'pinned',
+  'notes',
   'frameIoLink',
   'description',
 ];
@@ -128,6 +130,14 @@ export function buildTaskPayload(body = {}, { partial = false } = {}) {
       error.status = 400;
       throw error;
     }
+  }
+
+  if (payload.pinned !== undefined) {
+    payload.pinned = Boolean(payload.pinned);
+  }
+
+  if (payload.notes !== undefined) {
+    payload.notes = String(payload.notes ?? '').trim();
   }
 
   if (!partial) {

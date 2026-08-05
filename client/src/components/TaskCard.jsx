@@ -16,6 +16,7 @@ export default function TaskCard({
   task,
   onEdit,
   onDelete,
+  onTogglePin,
   draggable = false,
   isDragging = false,
   onDragStart,
@@ -43,6 +44,7 @@ export default function TaskCard({
         'task-card',
         `card-accent-${slug}`,
         `priority-${priority}`,
+        task.pinned ? 'is-pinned' : '',
         isDragging ? 'is-dragging' : '',
         draggable ? 'is-draggable' : '',
         isCompact ? 'is-compact' : '',
@@ -70,7 +72,20 @@ export default function TaskCard({
             <span className={`priority-chip priority-chip-${priority}`}>{priority}</span>
           )}
         </div>
-        <span className="task-id">#{task._id.slice(-6)}</span>
+        <div className="card-topline-right">
+          {onTogglePin && (
+            <button
+              type="button"
+              className={`pin-btn${task.pinned ? ' is-on' : ''}`}
+              aria-label={task.pinned ? 'Unpin task' : 'Pin task'}
+              title={task.pinned ? 'Unpin' : 'Pin'}
+              onClick={() => onTogglePin(task)}
+            >
+              {task.pinned ? '★' : '☆'}
+            </button>
+          )}
+          <span className="task-id">#{task._id.slice(-6)}</span>
+        </div>
       </div>
 
       <h3>{task.projectName}</h3>
@@ -86,6 +101,7 @@ export default function TaskCard({
             <span><strong>{task.duration}</strong> duration</span>
           </div>
           {task.description && <p className="description-preview">{task.description}</p>}
+          {task.notes && <p className="notes-preview"><span>Note</span>{task.notes}</p>}
           {(task.googleDocLink || task.frameIoLink) && (
             <div className="link-row">
               {task.googleDocLink && <a href={task.googleDocLink} target="_blank" rel="noreferrer">Google Doc</a>}

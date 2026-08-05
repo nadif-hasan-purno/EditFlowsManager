@@ -49,6 +49,7 @@ function taskQuery(filters = {}) {
   if (filters.status) params.set("status", filters.status);
   if (filters.client) params.set("client", filters.client);
   if (filters.editor) params.set("editor", filters.editor);
+  if (filters.priority) params.set("priority", filters.priority);
 
   const query = params.toString();
 
@@ -74,6 +75,12 @@ export const api = {
     request(`/tasks/${id}`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
+    }),
+
+  patchTask: (id, fields) =>
+    request(`/tasks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(fields),
     }),
 
   deleteTask: (id) =>

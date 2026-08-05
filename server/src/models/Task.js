@@ -55,6 +55,8 @@ const taskSchema = new mongoose.Schema(
     duration: { type: Number, required: true, min: 0 },
     status: { type: String, required: true, enum: TASK_STATUSES, default: 'Todo' },
     priority: { type: String, required: true, enum: TASK_PRIORITIES, default: 'medium' },
+    pinned: { type: Boolean, default: false },
+    notes: { type: String, default: '', trim: true },
     frameIoLink: {
       type: String,
       trim: true,

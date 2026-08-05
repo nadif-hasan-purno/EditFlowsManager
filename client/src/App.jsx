@@ -1,13 +1,34 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { PanelRightClose, PanelRightOpen, Plus, Settings2 } from 'lucide-react';
 import { api } from './api.js';
 import Filters from './components/Filters.jsx';
+import DashboardStrip from './components/DashboardStrip.jsx';
+import WorkloadPanel from './components/WorkloadPanel.jsx';
+import BulkBar from './components/BulkBar.jsx';
 import BoardView from './components/BoardView.jsx';
 import AgendaView from './components/AgendaView.jsx';
 import ListView from './components/ListView.jsx';
 import TaskForm from './components/TaskForm.jsx';
 import DefinitionManager from './components/DefinitionManager.jsx';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { Button } from '@/components/ui/button';
+import {
+  applyLocalFilters,
+  buildClientWorkload,
+  buildEditorWorkload,
+  buildInsights,
+  recentActivity,
+  sortForManagement,
+} from './utils/insights.js';
 
-const emptyFilters = { status: '', client: '', editor: '' };
+const emptyFilters = {
+  status: '',
+  client: '',
+  editor: '',
+  priority: '',
+  search: '',
+  smart: '',
+};
 
 function readStored(key, fallback) {
   try {
@@ -22,30 +43,46 @@ export default function App() {
   const [tasks, setTasks] = useState([]);
   const [definitions, setDefinitions] = useState([]);
   const [filters, setFilters] = useState(emptyFilters);
+  const [hideDone, setHideDone] = useState(() => readStored('ct-hide-done', '0') === '1');
   const [knownClients, setKnownClients] = useState(new Set());
   const [knownEditors, setKnownEditors] = useState(new Set());
   const [view, setView] = useState(() => readStored('ct-view', 'board'));
   const [compactCards, setCompactCards] = useState(() => readStored('ct-compact', '1') !== '0');
+  const [showSidePanel, setShowSidePanel] = useState(() => readStored('ct-side', '1') !== '0');
   const [editingTask, setEditingTask] = useState(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showDefinitions, setShowDefinitions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [error, setError] = useState('');
 
   useEffect(() => {
     try {
       localStorage.setItem('ct-view', view);
       localStorage.setItem('ct-compact', compactCards ? '1' : '0');
+      localStorage.setItem('ct-side', showSidePanel ? '1' : '0');
+      localStorage.setItem('ct-hide-done', hideDone ? '1' : '0');
     } catch {
-      /* ignore storage failures */
+      /* ignore */
     }
-  }, [view, compactCards]);
+  }, [view, compactCards, showSidePanel, hideDone]);
 
   const rememberNames = useCallback((items) => {
     setKnownClients((current) => new Set([...current, ...items.map((task) => task.clientName).filter(Boolean)]));
     setKnownEditors((current) => new Set([...current, ...items.map((task) => task.editorName).filter(Boolean)]));
   }, []);
+
+  const serverFilters = useMemo(
+    () => ({
+      status: filters.status,
+      client: filters.client,
+      editor: filters.editor,
+      priority: filters.priority,
+    }),
+    [filters.status, filters.client, filters.editor, filters.priority],
+  );
 
   const loadTasks = useCallback(async (activeFilters, showLoader = true) => {
     if (showLoader) setLoading(true);
@@ -70,16 +107,34 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    api.listTasks(emptyFilters).then(rememberNames).catch(() => {});
+    api.listTasks({}).then(rememberNames).catch(() => {});
     loadDefinitions();
   }, [loadDefinitions, rememberNames]);
 
   useEffect(() => {
-    loadTasks(filters);
-  }, [filters.status, filters.client, filters.editor, loadTasks]);
+    loadTasks(serverFilters);
+  }, [serverFilters.status, serverFilters.client, serverFilters.editor, serverFilters.priority, loadTasks]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [filters, hideDone, view]);
 
   const clients = useMemo(() => [...knownClients].sort((a, b) => a.localeCompare(b)), [knownClients]);
   const editors = useMemo(() => [...knownEditors].sort((a, b) => a.localeCompare(b)), [knownEditors]);
+
+  const visibleTasks = useMemo(() => {
+    const filtered = applyLocalFilters(tasks, {
+      search: filters.search,
+      smart: filters.smart,
+      hideDone,
+    });
+    return sortForManagement(filtered);
+  }, [tasks, filters.search, filters.smart, hideDone]);
+
+  const insights = useMemo(() => buildInsights(tasks), [tasks]);
+  const editorLoad = useMemo(() => buildEditorWorkload(tasks), [tasks]);
+  const clientLoad = useMemo(() => buildClientWorkload(tasks), [tasks]);
+  const recent = useMemo(() => recentActivity(tasks), [tasks]);
 
   function openCreate() {
     setEditingTask(null);
@@ -98,14 +153,19 @@ export default function App() {
     rememberNames([saved]);
     setShowTaskForm(false);
     setEditingTask(null);
-    await loadTasks(filters, false);
+    await loadTasks(serverFilters, false);
   }
 
   async function deleteTask(task) {
     if (!window.confirm(`Delete “${task.projectName}”? This cannot be undone.`)) return;
     try {
       await api.deleteTask(task._id);
-      await loadTasks(filters, false);
+      setSelectedIds((current) => {
+        const next = new Set(current);
+        next.delete(task._id);
+        return next;
+      });
+      await loadTasks(serverFilters, false);
     } catch (requestError) {
       setError(requestError.message);
     }
@@ -134,11 +194,83 @@ export default function App() {
     }
   }
 
+  async function togglePin(task) {
+    const nextPinned = !task.pinned;
+    setTasks((current) =>
+      current.map((item) =>
+        item._id === task._id ? { ...item, pinned: nextPinned } : item,
+      ),
+    );
+    try {
+      await api.patchTask(task._id, { pinned: nextPinned });
+    } catch (requestError) {
+      setTasks((current) =>
+        current.map((item) =>
+          item._id === task._id ? { ...item, pinned: task.pinned } : item,
+        ),
+      );
+      setError(requestError.message);
+    }
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((current) => {
+      if (visibleTasks.length > 0 && visibleTasks.every((task) => current.has(task._id))) {
+        return new Set();
+      }
+      return new Set(visibleTasks.map((task) => task._id));
+    });
+  }
+
+  async function bulkPatch(fields) {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    setError('');
+    try {
+      await Promise.all(ids.map((id) => api.patchTask(id, fields)));
+      await loadTasks(serverFilters, false);
+      setSelectedIds(new Set());
+    } catch (requestError) {
+      setError(requestError.message);
+      await loadTasks(serverFilters, false);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function bulkDelete() {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    if (!window.confirm(`Delete ${ids.length} selected task${ids.length === 1 ? '' : 's'}?`)) return;
+    setBulkBusy(true);
+    setError('');
+    try {
+      await Promise.all(ids.map((id) => api.deleteTask(id)));
+      setSelectedIds(new Set());
+      await loadTasks(serverFilters, false);
+    } catch (requestError) {
+      setError(requestError.message);
+      await loadTasks(serverFilters, false);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   async function exportCsv() {
     setExporting(true);
     setError('');
     try {
-      await api.downloadCsv(filters);
+      await api.downloadCsv(serverFilters);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -172,17 +304,43 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">CT</div>
-          <div><p className="eyebrow">Video agency workspace</p><h1>Cutline Task Tracker</h1></div>
+          <div>
+            <p className="eyebrow">Video agency workspace</p>
+            <h1>Cutline Task Tracker</h1>
+          </div>
         </div>
         <div className="header-actions">
-          <button className="button secondary" type="button" onClick={() => setShowDefinitions(true)}>Custom fields</button>
-          <button className="button primary" type="button" onClick={openCreate}>+ New task</button>
+          <ThemeToggle />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSidePanel((current) => !current)}
+          >
+            {showSidePanel ? <PanelRightClose /> : <PanelRightOpen />}
+            <span className="hidden sm:inline">{showSidePanel ? 'Hide insights' : 'Insights'}</span>
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => setShowDefinitions(true)}>
+            <Settings2 />
+            <span className="hidden sm:inline">Custom fields</span>
+          </Button>
+          <Button type="button" size="sm" onClick={openCreate}>
+            <Plus />
+            New task
+          </Button>
         </div>
       </header>
 
       <main>
         <section className="overview">
-          <div><p className="eyebrow">Production overview</p><h2>Keep every edit moving</h2><p>Track assignments, deadlines, and priority. Use Agenda for date-grouped work, Board to drag status, Table for a full grid.</p></div>
+          <div>
+            <p className="eyebrow">Command center</p>
+            <h2>Run production with clarity</h2>
+            <p>
+              Focused management surface with day/night theme, smart filters, workload heat,
+              pins, and bulk actions.
+            </p>
+          </div>
           <div className="view-toggle" aria-label="Choose view">
             <button className={view === 'board' ? 'active' : ''} type="button" onClick={() => setView('board')}>Board</button>
             <button className={view === 'agenda' ? 'active' : ''} type="button" onClick={() => setView('agenda')}>Agenda</button>
@@ -190,11 +348,30 @@ export default function App() {
           </div>
         </section>
 
-        <Filters filters={filters} onChange={setFilters} clients={clients} editors={editors} onExport={exportCsv} exporting={exporting} />
+        <DashboardStrip
+          insights={insights}
+          activeSmart={filters.smart}
+          onSmartChange={(smart) => setFilters((current) => ({ ...current, smart }))}
+        />
+
+        <Filters
+          filters={filters}
+          onChange={setFilters}
+          clients={clients}
+          editors={editors}
+          onExport={exportCsv}
+          exporting={exporting}
+          hideDone={hideDone}
+          onHideDoneChange={setHideDone}
+        />
+
         {error && <div className="alert error">{error}<button type="button" onClick={() => setError('')}>×</button></div>}
 
         <div className="results-heading">
-          <p><strong>{tasks.length}</strong> task{tasks.length === 1 ? '' : 's'} in this view</p>
+          <p>
+            <strong>{visibleTasks.length}</strong> task{visibleTasks.length === 1 ? '' : 's'}
+            {visibleTasks.length !== tasks.length ? ` of ${tasks.length}` : ''} in this view
+          </p>
           <div className="results-tools">
             {view === 'board' && (
               <button
@@ -205,32 +382,72 @@ export default function App() {
                 {compactCards ? 'Expand cards' : 'Compact cards'}
               </button>
             )}
-            {(filters.status || filters.client || filters.editor) && <span>CSV export will use these filters</span>}
+            {(filters.status || filters.client || filters.editor || filters.priority) && (
+              <span>CSV export uses status / client / editor / priority filters</span>
+            )}
           </div>
         </div>
 
-        {loading ? (
-          <div className="loading-state"><div className="spinner" /><p>Loading tasks…</p></div>
-        ) : tasks.length === 0 ? (
-          <section className="empty-state"><div>✓</div><h2>No matching tasks</h2><p>Create a task or clear the filters to see more work.</p><button className="button primary" type="button" onClick={openCreate}>Create task</button></section>
-        ) : view === 'board' ? (
-          <BoardView
-            tasks={tasks}
-            onEdit={openEdit}
-            onDelete={deleteTask}
-            onStatusChange={changeTaskStatus}
-            compactCards={compactCards}
-          />
-        ) : view === 'agenda' ? (
-          <AgendaView
-            tasks={tasks}
-            onEdit={openEdit}
-            onDelete={deleteTask}
-            onStatusChange={changeTaskStatus}
-          />
-        ) : (
-          <ListView tasks={tasks} onEdit={openEdit} onDelete={deleteTask} />
-        )}
+        <BulkBar
+          count={selectedIds.size}
+          busy={bulkBusy}
+          onClear={() => setSelectedIds(new Set())}
+          onStatus={(status) => bulkPatch({ status })}
+          onPriority={(priority) => bulkPatch({ priority })}
+          onDelete={bulkDelete}
+        />
+
+        <div className={`workspace${showSidePanel ? ' with-side' : ''}`}>
+          <div className="workspace-main">
+            {loading ? (
+              <div className="loading-state"><div className="spinner" /><p>Loading tasks…</p></div>
+            ) : visibleTasks.length === 0 ? (
+              <section className="empty-state">
+                <div>✓</div>
+                <h2>No matching tasks</h2>
+                <p>Create a task or clear search / smart filters to see more work.</p>
+                <button className="button primary" type="button" onClick={openCreate}>Create task</button>
+              </section>
+            ) : view === 'board' ? (
+              <BoardView
+                tasks={visibleTasks}
+                onEdit={openEdit}
+                onDelete={deleteTask}
+                onTogglePin={togglePin}
+                onStatusChange={changeTaskStatus}
+                compactCards={compactCards}
+              />
+            ) : view === 'agenda' ? (
+              <AgendaView
+                tasks={visibleTasks}
+                onEdit={openEdit}
+                onDelete={deleteTask}
+                onStatusChange={changeTaskStatus}
+              />
+            ) : (
+              <ListView
+                tasks={visibleTasks}
+                onEdit={openEdit}
+                onDelete={deleteTask}
+                onTogglePin={togglePin}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAll}
+              />
+            )}
+          </div>
+
+          {showSidePanel && (
+            <WorkloadPanel
+              editors={editorLoad}
+              clients={clientLoad}
+              recent={recent}
+              onFilterEditor={(editor) => setFilters((current) => ({ ...current, editor }))}
+              onFilterClient={(client) => setFilters((current) => ({ ...current, client }))}
+              onOpenTask={openEdit}
+            />
+          )}
+        </div>
       </main>
 
       {showTaskForm && (

@@ -10,6 +10,7 @@ export default function BoardView({
   tasks,
   onEdit,
   onDelete,
+  onTogglePin,
   onStatusChange,
   compactCards = true,
 }) {
@@ -92,6 +93,7 @@ export default function BoardView({
                   task={task}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  onTogglePin={onTogglePin}
                   draggable
                   isDragging={draggingId === task._id}
                   onDragStart={handleDragStart}

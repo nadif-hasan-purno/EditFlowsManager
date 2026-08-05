@@ -1,40 +1,119 @@
 import React from 'react';
-import { STATUSES } from '../constants.js';
+import { PRIORITIES, STATUSES } from '../constants.js';
 
-export default function Filters({ filters, onChange, clients, editors, onExport, exporting }) {
+const SMART_CHIPS = [
+  { id: '', label: 'All' },
+  { id: 'overdue', label: 'Due today' },
+  { id: 'due-week', label: 'This week' },
+  { id: 'high', label: 'High priority' },
+  { id: 'revision', label: 'In revision' },
+  { id: 'pinned', label: 'Pinned' },
+  { id: 'missing-links', label: 'Missing links' },
+];
+
+export default function Filters({
+  filters,
+  onChange,
+  clients,
+  editors,
+  onExport,
+  exporting,
+  hideDone,
+  onHideDoneChange,
+}) {
   const update = (key) => (event) => onChange({ ...filters, [key]: event.target.value });
-  const hasFilters = filters.status || filters.client || filters.editor;
+
+  const hasFilters = Boolean(
+    filters.status
+    || filters.client
+    || filters.editor
+    || filters.priority
+    || filters.search
+    || filters.smart
+    || hideDone,
+  );
+
+  function clearAll() {
+    onChange({ status: '', client: '', editor: '', priority: '', search: '', smart: '' });
+    onHideDoneChange(false);
+  }
 
   return (
-    <section className="toolbar" aria-label="Task filters">
-      <div className="filters">
-        <label>
-          <span>Status</span>
-          <select value={filters.status} onChange={update('status')}>
-            <option value="">All statuses</option>
-            {STATUSES.map((status) => <option key={status}>{status}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>Client</span>
-          <select value={filters.client} onChange={update('client')}>
-            <option value="">All clients</option>
-            {clients.map((client) => <option key={client}>{client}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>Editor</span>
-          <select value={filters.editor} onChange={update('editor')}>
-            <option value="">All editors</option>
-            {editors.map((editor) => <option key={editor}>{editor}</option>)}
-          </select>
-        </label>
-        {hasFilters && (
-          <button className="button ghost compact" type="button" onClick={() => onChange({ status: '', client: '', editor: '' })}>
-            Clear filters
-          </button>
-        )}
+    <section className="toolbar management-toolbar" aria-label="Task filters">
+      <div className="filters-stack">
+        <div className="filters">
+          <label className="search-field">
+            <span>Search</span>
+            <input
+              type="search"
+              placeholder="Project, client, editor, notes…"
+              value={filters.search}
+              onChange={update('search')}
+            />
+          </label>
+          <label>
+            <span>Status</span>
+            <select value={filters.status} onChange={update('status')}>
+              <option value="">All statuses</option>
+              {STATUSES.map((status) => <option key={status}>{status}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Priority</span>
+            <select value={filters.priority} onChange={update('priority')}>
+              <option value="">All priorities</option>
+              {PRIORITIES.map((priority) => (
+                <option key={priority} value={priority}>
+                  {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Client</span>
+            <select value={filters.client} onChange={update('client')}>
+              <option value="">All clients</option>
+              {clients.map((client) => <option key={client}>{client}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Editor</span>
+            <select value={filters.editor} onChange={update('editor')}>
+              <option value="">All editors</option>
+              {editors.map((editor) => <option key={editor}>{editor}</option>)}
+            </select>
+          </label>
+        </div>
+
+        <div className="smart-row">
+          <div className="smart-chips" role="group" aria-label="Smart filters">
+            {SMART_CHIPS.map((chip) => (
+              <button
+                key={chip.id || 'all'}
+                type="button"
+                className={`chip${filters.smart === chip.id ? ' active' : ''}`}
+                onClick={() => onChange({ ...filters, smart: chip.id })}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+          <label className="checkbox hide-done">
+            <input
+              type="checkbox"
+              checked={hideDone}
+              onChange={(event) => onHideDoneChange(event.target.checked)}
+            />
+            <span>Hide done</span>
+          </label>
+          {hasFilters && (
+            <button className="button ghost compact" type="button" onClick={clearAll}>
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
+
       <button className="button secondary" type="button" onClick={onExport} disabled={exporting}>
         {exporting ? 'Exporting…' : 'Export to CSV'}
       </button>

@@ -53,7 +53,10 @@ router.put('/:id', async (req, res) => {
     googleDocLink: payload.googleDocLink ?? '',
     frameIoLink: payload.frameIoLink ?? '',
     description: payload.description ?? '',
+    notes: payload.notes ?? '',
     status: payload.status ?? 'Todo',
+    priority: payload.priority ?? 'medium',
+    pinned: payload.pinned ?? false,
     customFields: payload.customFields ?? [],
   });
   await task.save();

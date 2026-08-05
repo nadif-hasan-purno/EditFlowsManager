@@ -8,8 +8,10 @@ const FIXED_HEADERS = [
   ['Duration', 'duration'],
   ['Status', 'status'],
   ['Priority', 'priority'],
+  ['Pinned', 'pinned'],
   ['Frame.io Link', 'frameIoLink'],
   ['Description', 'description'],
+  ['Notes', 'notes'],
 ];
 
 function csvCell(value) {

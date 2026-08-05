@@ -1,11 +1,29 @@
 import React from 'react';
 
-export default function ListView({ tasks, onEdit, onDelete }) {
+export default function ListView({
+  tasks,
+  onEdit,
+  onDelete,
+  onTogglePin,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
+}) {
+  const allSelected = tasks.length > 0 && tasks.every((task) => selectedIds.has(task._id));
+
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
+            <th className="col-check">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={onToggleSelectAll}
+                aria-label="Select all tasks"
+              />
+            </th>
             <th>Project</th>
             <th>Client</th>
             <th>Editor</th>
@@ -19,10 +37,22 @@ export default function ListView({ tasks, onEdit, onDelete }) {
         </thead>
         <tbody>
           {tasks.map((task) => (
-            <tr key={task._id}>
+            <tr key={task._id} className={selectedIds.has(task._id) ? 'is-selected' : ''}>
+              <td className="col-check">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(task._id)}
+                  onChange={() => onToggleSelect(task._id)}
+                  aria-label={`Select ${task.projectName}`}
+                />
+              </td>
               <td>
-                <strong>{task.projectName}</strong>
+                <div className="table-project">
+                  {task.pinned && <span className="pin-mark" title="Pinned">★</span>}
+                  <strong>{task.projectName}</strong>
+                </div>
                 {task.description && <span className="table-description">{task.description}</span>}
+                {task.notes && <span className="table-notes">Note: {task.notes}</span>}
               </td>
               <td>{task.clientName}</td>
               <td>{task.editorName}</td>
@@ -43,6 +73,14 @@ export default function ListView({ tasks, onEdit, onDelete }) {
               </td>
               <td>
                 <div className="row-actions">
+                  <button
+                    className={`pin-btn${task.pinned ? ' is-on' : ''}`}
+                    type="button"
+                    onClick={() => onTogglePin(task)}
+                    aria-label={task.pinned ? 'Unpin' : 'Pin'}
+                  >
+                    {task.pinned ? '★' : '☆'}
+                  </button>
                   <button className="button ghost compact" type="button" onClick={() => onEdit(task)}>Edit</button>
                   <button className="button danger compact" type="button" onClick={() => onDelete(task)}>Delete</button>
                 </div>

@@ -11,6 +11,8 @@ const emptyTask = {
   duration: 0,
   status: 'Todo',
   priority: 'medium',
+  pinned: false,
+  notes: '',
   frameIoLink: '',
   description: '',
   customFields: [],
@@ -22,6 +24,8 @@ function prepareInitial(task) {
     ...emptyTask,
     ...task,
     priority: task.priority || 'medium',
+    pinned: Boolean(task.pinned),
+    notes: task.notes || '',
     customFields: (task.customFields || []).map((field) => ({
       ...field,
       localId: field._id || crypto.randomUUID(),
@@ -171,7 +175,24 @@ export default function TaskForm({ task, definitions, onSave, onCancel, onCreate
             <label><span>Duration *</span><input required min="0" step="any" type="number" value={form.duration} onChange={update('duration')} /></label>
             <label className="wide"><span>Google Doc Link</span><input type="url" placeholder="https://docs.google.com/..." value={form.googleDocLink} onChange={update('googleDocLink')} /></label>
             <label className="wide"><span>Frame.io Link</span><input type="url" placeholder="https://frame.io/..." value={form.frameIoLink} onChange={update('frameIoLink')} /></label>
-            <label className="wide"><span>Description</span><textarea rows="4" value={form.description} onChange={update('description')} /></label>
+            <label className="wide"><span>Description</span><textarea rows="3" value={form.description} onChange={update('description')} /></label>
+            <label className="wide">
+              <span>Manager notes</span>
+              <textarea
+                rows="2"
+                placeholder="Internal follow-ups, blockers, handoff notes…"
+                value={form.notes || ''}
+                onChange={update('notes')}
+              />
+            </label>
+            <label className="checkbox wide pin-check">
+              <input
+                type="checkbox"
+                checked={Boolean(form.pinned)}
+                onChange={(event) => setForm((current) => ({ ...current, pinned: event.target.checked }))}
+              />
+              <span>Pin this task to the top of management views</span>
+            </label>
           </div>
 
           <section className="custom-fields-section">
