@@ -15,7 +15,10 @@ async function start() {
   console.log('Connected to MongoDB.');
 
   const server = app.listen(port, () => {
-    console.log(`Task Tracker API listening on http://localhost:${port}`);
+    console.log(`Task Tracker API listening on port ${port}`);
+    if (process.env.CLIENT_ORIGIN) {
+      console.log(`CLIENT_ORIGIN env: ${process.env.CLIENT_ORIGIN}`);
+    }
   });
 
   const shutdown = async (signal) => {

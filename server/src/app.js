@@ -6,31 +6,45 @@ import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const app = express();
 
-/** Comma-separated list of frontend origins, e.g. http://localhost:5173,https://your-app.onrender.com */
-const allowedOrigins = String(process.env.CLIENT_ORIGIN || "http://localhost:5173")
+/**
+ * Always allow local Vite + the production Render frontend.
+ * CLIENT_ORIGIN can add more (comma-separated) without replacing these defaults.
+ * This avoids production CORS breakage when Render still has CLIENT_ORIGIN=localhost.
+ */
+const DEFAULT_ORIGINS = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://editflows-manager-frontend.onrender.com",
+];
+
+const envOrigins = String(process.env.CLIENT_ORIGIN || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const allowedOrigins = [...new Set([...DEFAULT_ORIGINS, ...envOrigins])];
+
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow same-origin tools / server-to-server (no Origin header)
+      // Non-browser / same-origin tools send no Origin header
       if (!origin) {
         callback(null, true);
         return;
       }
 
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
-        callback(null, true);
+      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        // Echo the request origin (required when credentials are not used but multiple origins exist)
+        callback(null, origin);
         return;
       }
 
-      // Deny without throwing — a thrown Error becomes a 500 and confuses debugging
+      console.warn(`[cors] Blocked origin: ${origin}. Allowed: ${allowedOrigins.join(", ")}`);
       callback(null, false);
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "Accept"],
+    optionsSuccessStatus: 204,
   }),
 );
 
