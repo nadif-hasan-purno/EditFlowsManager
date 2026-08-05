@@ -70,6 +70,12 @@ export const api = {
       body: JSON.stringify(task),
     }),
 
+  updateTaskStatus: (id, status) =>
+    request(`/tasks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+
   deleteTask: (id) =>
     request(`/tasks/${id}`, {
       method: "DELETE",

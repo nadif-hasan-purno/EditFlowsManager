@@ -23,7 +23,7 @@ Set the API base URL in `.env` when the server is not running at `http://localho
 VITE_API_URL=http://localhost:5000/api
 ```
 
-## Production build
+## Production build / Render
 
 ```bash
 npm run build
@@ -31,3 +31,13 @@ npm run preview
 ```
 
 The generated static files are placed in `dist/`.
+
+On Render (or any host), set **`VITE_API_URL` at build time** to your live API root, for example:
+
+```env
+VITE_API_URL=https://your-api.onrender.com/api
+```
+
+Vite bakes this value into the static bundle during `npm run build`. If it still points at `localhost`, the deployed UI cannot reach MongoDB through your API.
+
+Also ensure the API service has your frontend origin in `CLIENT_ORIGIN` (see the server README). That removes the need for any CORS browser extension.

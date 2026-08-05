@@ -23,7 +23,24 @@ PORT=5000
 CLIENT_ORIGIN=http://localhost:5173
 ```
 
-`CLIENT_ORIGIN` may contain comma-separated origins.
+`CLIENT_ORIGIN` may contain comma-separated origins (required so browsers can call this API from your frontend without a CORS extension).
+
+### Render / production
+
+On the **API service**, set:
+
+```env
+MONGODB_URI=<your Atlas or hosted Mongo URI>
+CLIENT_ORIGIN=https://your-frontend.onrender.com
+```
+
+If you also develop locally against the deployed API, include both:
+
+```env
+CLIENT_ORIGIN=http://localhost:5173,https://your-frontend.onrender.com
+```
+
+Without the production frontend URL in `CLIENT_ORIGIN`, the browser will block every request and only a CORS browser extension will appear to “fix” it.
 
 ## Main endpoints
 

@@ -6,9 +6,29 @@ import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const app = express();
 
+/** Comma-separated list of frontend origins, e.g. http://localhost:5173,https://your-app.onrender.com */
+const allowedOrigins = String(process.env.CLIENT_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin(origin, callback) {
+      // Allow same-origin tools / server-to-server (no Origin header)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+        callback(null, true);
+        return;
+      }
+
+      // Deny without throwing — a thrown Error becomes a 500 and confuses debugging
+      callback(null, false);
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
   }),

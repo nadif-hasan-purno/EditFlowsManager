@@ -7,11 +7,38 @@ function CustomFieldValue({ field }) {
   return <span>{field.value === '' || field.value === null || field.value === undefined ? '—' : String(field.value)}</span>;
 }
 
-export default function TaskCard({ task, onEdit, onDelete }) {
+function statusSlug(status) {
+  return status.toLowerCase().replaceAll(' ', '-');
+}
+
+export default function TaskCard({
+  task,
+  onEdit,
+  onDelete,
+  draggable = false,
+  isDragging = false,
+  onDragStart,
+  onDragEnd,
+}) {
+  const slug = statusSlug(task.status);
+
+  function handleDragStart(event) {
+    if (event.target.closest('button, a, .card-actions')) {
+      event.preventDefault();
+      return;
+    }
+    onDragStart?.(event, task);
+  }
+
   return (
-    <article className="task-card">
+    <article
+      className={`task-card card-accent-${slug}${isDragging ? ' is-dragging' : ''}${draggable ? ' is-draggable' : ''}`}
+      draggable={draggable}
+      onDragStart={draggable ? handleDragStart : undefined}
+      onDragEnd={draggable ? onDragEnd : undefined}
+    >
       <div className="task-card-topline">
-        <span className={`status-badge status-${task.status.toLowerCase().replaceAll(' ', '-')}`}>{task.status}</span>
+        <span className={`status-badge status-${slug}`}>{task.status}</span>
         <span className="task-id">#{task._id.slice(-6)}</span>
       </div>
       <h3>{task.projectName}</h3>

@@ -91,6 +91,29 @@ export default function App() {
     }
   }
 
+  async function changeTaskStatus(task, nextStatus) {
+    if (!task || task.status === nextStatus) return;
+
+    const previousStatus = task.status;
+    setTasks((current) =>
+      current.map((item) =>
+        item._id === task._id ? { ...item, status: nextStatus } : item,
+      ),
+    );
+    setError('');
+
+    try {
+      await api.updateTaskStatus(task._id, nextStatus);
+    } catch (requestError) {
+      setTasks((current) =>
+        current.map((item) =>
+          item._id === task._id ? { ...item, status: previousStatus } : item,
+        ),
+      );
+      setError(requestError.message);
+    }
+  }
+
   async function exportCsv() {
     setExporting(true);
     setError('');
@@ -139,7 +162,7 @@ export default function App() {
 
       <main>
         <section className="overview">
-          <div><p className="eyebrow">Production overview</p><h2>Keep every edit moving</h2><p>Track assignments, review links, deadlines, and agency-specific metadata in one lean workspace.</p></div>
+          <div><p className="eyebrow">Production overview</p><h2>Keep every edit moving</h2><p>Track assignments, review links, deadlines, and agency-specific metadata in one lean workspace. Drag cards across the board to update status.</p></div>
           <div className="view-toggle" aria-label="Choose view">
             <button className={view === 'board' ? 'active' : ''} type="button" onClick={() => setView('board')}>Board</button>
             <button className={view === 'list' ? 'active' : ''} type="button" onClick={() => setView('list')}>List</button>
@@ -159,7 +182,7 @@ export default function App() {
         ) : tasks.length === 0 ? (
           <section className="empty-state"><div>✓</div><h2>No matching tasks</h2><p>Create a task or clear the filters to see more work.</p><button className="button primary" type="button" onClick={openCreate}>Create task</button></section>
         ) : view === 'board' ? (
-          <BoardView tasks={tasks} onEdit={openEdit} onDelete={deleteTask} />
+          <BoardView tasks={tasks} onEdit={openEdit} onDelete={deleteTask} onStatusChange={changeTaskStatus} />
         ) : (
           <ListView tasks={tasks} onEdit={openEdit} onDelete={deleteTask} />
         )}
