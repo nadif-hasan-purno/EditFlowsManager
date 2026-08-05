@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CUSTOM_FIELD_TYPES, STATUSES } from '../constants.js';
+import { CUSTOM_FIELD_TYPES, PRIORITIES, STATUSES } from '../constants.js';
 import CustomFieldInput from './CustomFieldInput.jsx';
 
 const emptyTask = {
@@ -10,6 +10,7 @@ const emptyTask = {
   deadlineDays: 0,
   duration: 0,
   status: 'Todo',
+  priority: 'medium',
   frameIoLink: '',
   description: '',
   customFields: [],
@@ -20,6 +21,7 @@ function prepareInitial(task) {
   return {
     ...emptyTask,
     ...task,
+    priority: task.priority || 'medium',
     customFields: (task.customFields || []).map((field) => ({
       ...field,
       localId: field._id || crypto.randomUUID(),
@@ -155,6 +157,16 @@ export default function TaskForm({ task, definitions, onSave, onCancel, onCreate
             <label><span>Editor Name *</span><input required value={form.editorName} onChange={update('editorName')} /></label>
             <label className="wide"><span>Project Name *</span><input required value={form.projectName} onChange={update('projectName')} /></label>
             <label><span>Status *</span><select value={form.status} onChange={update('status')}>{STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
+            <label>
+              <span>Priority</span>
+              <select value={form.priority || 'medium'} onChange={update('priority')}>
+                {PRIORITIES.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label><span>Deadline (days) *</span><input required min="0" type="number" value={form.deadlineDays} onChange={update('deadlineDays')} /></label>
             <label><span>Duration *</span><input required min="0" step="any" type="number" value={form.duration} onChange={update('duration')} /></label>
             <label className="wide"><span>Google Doc Link</span><input type="url" placeholder="https://docs.google.com/..." value={form.googleDocLink} onChange={update('googleDocLink')} /></label>

@@ -8,6 +8,8 @@ export const TASK_STATUSES = [
   'Cancelled',
 ];
 
+export const TASK_PRIORITIES = ['low', 'medium', 'high'];
+
 export const CUSTOM_FIELD_TYPES = ['text', 'number', 'url', 'date', 'dropdown'];
 
 const customFieldSchema = new mongoose.Schema(
@@ -52,6 +54,7 @@ const taskSchema = new mongoose.Schema(
     deadlineDays: { type: Number, required: true, min: 0 },
     duration: { type: Number, required: true, min: 0 },
     status: { type: String, required: true, enum: TASK_STATUSES, default: 'Todo' },
+    priority: { type: String, required: true, enum: TASK_PRIORITIES, default: 'medium' },
     frameIoLink: {
       type: String,
       trim: true,

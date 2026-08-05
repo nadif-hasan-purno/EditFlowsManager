@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { CUSTOM_FIELD_TYPES, TASK_STATUSES } from '../models/Task.js';
+import { CUSTOM_FIELD_TYPES, TASK_PRIORITIES, TASK_STATUSES } from '../models/Task.js';
 
 const FIXED_FIELDS = [
   'clientName',
@@ -9,6 +9,7 @@ const FIXED_FIELDS = [
   'deadlineDays',
   'duration',
   'status',
+  'priority',
   'frameIoLink',
   'description',
 ];
@@ -118,6 +119,15 @@ export function buildTaskPayload(body = {}, { partial = false } = {}) {
     const error = new Error(`Invalid status. Use one of: ${TASK_STATUSES.join(', ')}`);
     error.status = 400;
     throw error;
+  }
+
+  if (payload.priority !== undefined) {
+    payload.priority = String(payload.priority).trim().toLowerCase();
+    if (!TASK_PRIORITIES.includes(payload.priority)) {
+      const error = new Error(`Invalid priority. Use one of: ${TASK_PRIORITIES.join(', ')}`);
+      error.status = 400;
+      throw error;
+    }
   }
 
   if (!partial) {

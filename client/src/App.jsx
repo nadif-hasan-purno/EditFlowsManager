@@ -2,11 +2,21 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from './api.js';
 import Filters from './components/Filters.jsx';
 import BoardView from './components/BoardView.jsx';
+import AgendaView from './components/AgendaView.jsx';
 import ListView from './components/ListView.jsx';
 import TaskForm from './components/TaskForm.jsx';
 import DefinitionManager from './components/DefinitionManager.jsx';
 
 const emptyFilters = { status: '', client: '', editor: '' };
+
+function readStored(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return value == null ? fallback : value;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function App() {
   const [tasks, setTasks] = useState([]);
@@ -14,13 +24,23 @@ export default function App() {
   const [filters, setFilters] = useState(emptyFilters);
   const [knownClients, setKnownClients] = useState(new Set());
   const [knownEditors, setKnownEditors] = useState(new Set());
-  const [view, setView] = useState('board');
+  const [view, setView] = useState(() => readStored('ct-view', 'board'));
+  const [compactCards, setCompactCards] = useState(() => readStored('ct-compact', '1') !== '0');
   const [editingTask, setEditingTask] = useState(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showDefinitions, setShowDefinitions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ct-view', view);
+      localStorage.setItem('ct-compact', compactCards ? '1' : '0');
+    } catch {
+      /* ignore storage failures */
+    }
+  }, [view, compactCards]);
 
   const rememberNames = useCallback((items) => {
     setKnownClients((current) => new Set([...current, ...items.map((task) => task.clientName).filter(Boolean)]));
@@ -162,10 +182,11 @@ export default function App() {
 
       <main>
         <section className="overview">
-          <div><p className="eyebrow">Production overview</p><h2>Keep every edit moving</h2><p>Track assignments, review links, deadlines, and agency-specific metadata in one lean workspace. Drag cards across the board to update status.</p></div>
+          <div><p className="eyebrow">Production overview</p><h2>Keep every edit moving</h2><p>Track assignments, deadlines, and priority. Use Agenda for date-grouped work, Board to drag status, Table for a full grid.</p></div>
           <div className="view-toggle" aria-label="Choose view">
             <button className={view === 'board' ? 'active' : ''} type="button" onClick={() => setView('board')}>Board</button>
-            <button className={view === 'list' ? 'active' : ''} type="button" onClick={() => setView('list')}>List</button>
+            <button className={view === 'agenda' ? 'active' : ''} type="button" onClick={() => setView('agenda')}>Agenda</button>
+            <button className={view === 'list' ? 'active' : ''} type="button" onClick={() => setView('list')}>Table</button>
           </div>
         </section>
 
@@ -174,7 +195,18 @@ export default function App() {
 
         <div className="results-heading">
           <p><strong>{tasks.length}</strong> task{tasks.length === 1 ? '' : 's'} in this view</p>
-          {(filters.status || filters.client || filters.editor) && <span>CSV export will use these filters</span>}
+          <div className="results-tools">
+            {view === 'board' && (
+              <button
+                className="button ghost compact"
+                type="button"
+                onClick={() => setCompactCards((current) => !current)}
+              >
+                {compactCards ? 'Expand cards' : 'Compact cards'}
+              </button>
+            )}
+            {(filters.status || filters.client || filters.editor) && <span>CSV export will use these filters</span>}
+          </div>
         </div>
 
         {loading ? (
@@ -182,7 +214,20 @@ export default function App() {
         ) : tasks.length === 0 ? (
           <section className="empty-state"><div>✓</div><h2>No matching tasks</h2><p>Create a task or clear the filters to see more work.</p><button className="button primary" type="button" onClick={openCreate}>Create task</button></section>
         ) : view === 'board' ? (
-          <BoardView tasks={tasks} onEdit={openEdit} onDelete={deleteTask} onStatusChange={changeTaskStatus} />
+          <BoardView
+            tasks={tasks}
+            onEdit={openEdit}
+            onDelete={deleteTask}
+            onStatusChange={changeTaskStatus}
+            compactCards={compactCards}
+          />
+        ) : view === 'agenda' ? (
+          <AgendaView
+            tasks={tasks}
+            onEdit={openEdit}
+            onDelete={deleteTask}
+            onStatusChange={changeTaskStatus}
+          />
         ) : (
           <ListView tasks={tasks} onEdit={openEdit} onDelete={deleteTask} />
         )}

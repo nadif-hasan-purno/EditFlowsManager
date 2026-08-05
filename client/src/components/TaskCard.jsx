@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatShortDate, getDueDate } from '../utils/taskMeta.js';
 
 function CustomFieldValue({ field }) {
   if (field.type === 'url' && field.value) {
@@ -19,11 +20,17 @@ export default function TaskCard({
   isDragging = false,
   onDragStart,
   onDragEnd,
+  compact = true,
+  expanded = false,
+  onToggleExpand,
 }) {
   const slug = statusSlug(task.status);
+  const priority = task.priority || 'medium';
+  const dueLabel = formatShortDate(getDueDate(task));
+  const isCompact = compact && !expanded;
 
   function handleDragStart(event) {
-    if (event.target.closest('button, a, .card-actions')) {
+    if (event.target.closest('button, a, .card-actions, .card-expand-btn')) {
       event.preventDefault();
       return;
     }
@@ -32,43 +39,83 @@ export default function TaskCard({
 
   return (
     <article
-      className={`task-card card-accent-${slug}${isDragging ? ' is-dragging' : ''}${draggable ? ' is-draggable' : ''}`}
+      className={[
+        'task-card',
+        `card-accent-${slug}`,
+        `priority-${priority}`,
+        isDragging ? 'is-dragging' : '',
+        draggable ? 'is-draggable' : '',
+        isCompact ? 'is-compact' : '',
+        expanded ? 'is-expanded' : '',
+      ].filter(Boolean).join(' ')}
       draggable={draggable}
       onDragStart={draggable ? handleDragStart : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
     >
       <div className="task-card-topline">
-        <span className={`status-badge status-${slug}`}>{task.status}</span>
+        <div className="card-topline-left">
+          {compact && onToggleExpand && (
+            <button
+              type="button"
+              className="card-expand-btn"
+              aria-expanded={!isCompact}
+              aria-label={isCompact ? 'Expand card' : 'Collapse card'}
+              onClick={() => onToggleExpand(task._id)}
+            >
+              {isCompact ? '▸' : '▾'}
+            </button>
+          )}
+          <span className={`status-badge status-${slug}`}>{task.status}</span>
+          {priority !== 'medium' && (
+            <span className={`priority-chip priority-chip-${priority}`}>{priority}</span>
+          )}
+        </div>
         <span className="task-id">#{task._id.slice(-6)}</span>
       </div>
+
       <h3>{task.projectName}</h3>
-      <p className="muted">{task.clientName} · {task.editorName}</p>
-      <div className="task-metrics">
-        <span><strong>{task.deadlineDays}</strong> days left</span>
-        <span><strong>{task.duration}</strong> duration</span>
-      </div>
-      {task.description && <p className="description-preview">{task.description}</p>}
-      {(task.googleDocLink || task.frameIoLink) && (
-        <div className="link-row">
-          {task.googleDocLink && <a href={task.googleDocLink} target="_blank" rel="noreferrer">Google Doc</a>}
-          {task.frameIoLink && <a href={task.frameIoLink} target="_blank" rel="noreferrer">Frame.io</a>}
+      <p className="muted card-meta-line">
+        {task.clientName} · {task.editorName}
+        <span className="due-chip">{task.deadlineDays}d · {dueLabel}</span>
+      </p>
+
+      {!isCompact && (
+        <>
+          <div className="task-metrics">
+            <span><strong>{task.deadlineDays}</strong> days left</span>
+            <span><strong>{task.duration}</strong> duration</span>
+          </div>
+          {task.description && <p className="description-preview">{task.description}</p>}
+          {(task.googleDocLink || task.frameIoLink) && (
+            <div className="link-row">
+              {task.googleDocLink && <a href={task.googleDocLink} target="_blank" rel="noreferrer">Google Doc</a>}
+              {task.frameIoLink && <a href={task.frameIoLink} target="_blank" rel="noreferrer">Frame.io</a>}
+            </div>
+          )}
+          {task.customFields?.length > 0 && (
+            <dl className="custom-summary">
+              {task.customFields.slice(0, 3).map((field) => (
+                <div key={field._id || field.name}>
+                  <dt>{field.name}</dt>
+                  <dd><CustomFieldValue field={field} /></dd>
+                </div>
+              ))}
+              {task.customFields.length > 3 && <p className="muted tiny">+{task.customFields.length - 3} more fields</p>}
+            </dl>
+          )}
+          <div className="card-actions">
+            <button className="button ghost compact" type="button" onClick={() => onEdit(task)}>Edit</button>
+            <button className="button danger compact" type="button" onClick={() => onDelete(task)}>Delete</button>
+          </div>
+        </>
+      )}
+
+      {isCompact && (
+        <div className="card-actions card-actions-compact">
+          <button className="button ghost compact" type="button" onClick={() => onEdit(task)}>Edit</button>
+          <button className="button danger compact" type="button" onClick={() => onDelete(task)}>Del</button>
         </div>
       )}
-      {task.customFields?.length > 0 && (
-        <dl className="custom-summary">
-          {task.customFields.slice(0, 3).map((field) => (
-            <div key={field._id || field.name}>
-              <dt>{field.name}</dt>
-              <dd><CustomFieldValue field={field} /></dd>
-            </div>
-          ))}
-          {task.customFields.length > 3 && <p className="muted tiny">+{task.customFields.length - 3} more fields</p>}
-        </dl>
-      )}
-      <div className="card-actions">
-        <button className="button ghost compact" type="button" onClick={() => onEdit(task)}>Edit</button>
-        <button className="button danger compact" type="button" onClick={() => onDelete(task)}>Delete</button>
-      </div>
     </article>
   );
 }

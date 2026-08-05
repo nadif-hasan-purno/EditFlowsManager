@@ -7,6 +7,7 @@ const FIXED_HEADERS = [
   ['Deadline (days)', 'deadlineDays'],
   ['Duration', 'duration'],
   ['Status', 'status'],
+  ['Priority', 'priority'],
   ['Frame.io Link', 'frameIoLink'],
   ['Description', 'description'],
 ];

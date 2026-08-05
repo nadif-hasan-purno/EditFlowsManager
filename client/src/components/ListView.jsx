@@ -10,6 +10,7 @@ export default function ListView({ tasks, onEdit, onDelete }) {
             <th>Client</th>
             <th>Editor</th>
             <th>Status</th>
+            <th>Priority</th>
             <th>Deadline</th>
             <th>Duration</th>
             <th>Links</th>
@@ -26,6 +27,11 @@ export default function ListView({ tasks, onEdit, onDelete }) {
               <td>{task.clientName}</td>
               <td>{task.editorName}</td>
               <td><span className={`status-badge status-${task.status.toLowerCase().replaceAll(' ', '-')}`}>{task.status}</span></td>
+              <td>
+                <span className={`priority-chip priority-chip-${task.priority || 'medium'}`}>
+                  {task.priority || 'medium'}
+                </span>
+              </td>
               <td>{task.deadlineDays} days</td>
               <td>{task.duration}</td>
               <td>

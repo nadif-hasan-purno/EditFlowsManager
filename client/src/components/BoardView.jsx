@@ -6,9 +6,25 @@ function statusSlug(status) {
   return status.toLowerCase().replaceAll(' ', '-');
 }
 
-export default function BoardView({ tasks, onEdit, onDelete, onStatusChange }) {
+export default function BoardView({
+  tasks,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  compactCards = true,
+}) {
   const [draggingId, setDraggingId] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+
+  function toggleExpand(taskId) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  }
 
   function handleDragStart(event, task) {
     event.dataTransfer.setData('text/plain', task._id);
@@ -28,7 +44,6 @@ export default function BoardView({ tasks, onEdit, onDelete, onStatusChange }) {
   }
 
   function handleDragLeave(event, status) {
-    // Only clear when leaving the column itself (not child nodes)
     if (!event.currentTarget.contains(event.relatedTarget)) {
       setDropTarget((current) => (current === status ? null : current));
     }
@@ -81,6 +96,9 @@ export default function BoardView({ tasks, onEdit, onDelete, onStatusChange }) {
                   isDragging={draggingId === task._id}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
+                  compact={compactCards}
+                  expanded={expandedIds.has(task._id)}
+                  onToggleExpand={toggleExpand}
                 />
               ))}
               {statusTasks.length === 0 && (
